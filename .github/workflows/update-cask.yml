@@ -1,0 +1,57 @@
+name: Update Cask
+
+on:
+  repository_dispatch:
+    types: [release-published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (without v prefix)"
+        required: true
+      dmg_url:
+        description: "Direct URL to the .dmg asset"
+        required: true
+
+jobs:
+  update:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set version and download DMG
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_VERSION: ${{ github.event.client_payload.version }}
+          DISPATCH_DMG_URL: ${{ github.event.client_payload.dmg_url }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_DMG_URL: ${{ github.event.inputs.dmg_url }}
+        run: |
+          if [ "$EVENT_NAME" = "repository_dispatch" ]; then
+            VERSION="$DISPATCH_VERSION"
+            DMG_URL="$DISPATCH_DMG_URL"
+          else
+            VERSION="$INPUT_VERSION"
+            DMG_URL="$INPUT_DMG_URL"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Downloading DMG from $DMG_URL"
+          curl -sL "$DMG_URL" -o mediarr.dmg
+          SHA=$(shasum -a 256 mediarr.dmg | cut -d' ' -f1)
+          echo "SHA256=$SHA" >> "$GITHUB_ENV"
+          echo "Version: $VERSION, SHA256: $SHA"
+
+      - name: Update cask file
+        run: |
+          sed -i '' "s/version \".*\"/version \"$VERSION\"/" Casks/mediarr.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"$SHA256\"/" Casks/mediarr.rb
+          echo "Updated Casks/mediarr.rb:"
+          cat Casks/mediarr.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/mediarr.rb
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Update mediarr to $VERSION"
+          git push
