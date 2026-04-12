@@ -1,6 +1,6 @@
 cask "mediarr" do
-  version "0.1.2"
-  sha256 "dbc4e16cb1b2fd4ad5ec1ab3f9b69c2e969bd93709d2799809c95b64ce06d17d"
+  version "0.1.6"
+  sha256 "d9614c6ac154c1a519f3e26a029e338123942f268b29bda2342f3f2e1d9eaff2"
 
   url "https://github.com/matthewnessworthy/mediarr/releases/download/v#{version}/Mediarr_#{version}_universal.dmg",
       verified: "github.com/matthewnessworthy/mediarr/"
